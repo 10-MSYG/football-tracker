@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Football Play Tracker</title>
+<style>
+body {
+font-family: Arial, sans-serif;
+padding: 10px;
+background: #f0f0f0;
+margin: 0;
+}
+h2 {
+font-size: 24px;
+}
+.controls {
+position: sticky;
+top: 0;
+background: white;
+padding: 10px 0;
+z-index: 10;
+}
+button {
+font-size: 18px;
+padding: 10px;
+margin: 5px 5px 10px 0;
+border: none;
+border-radius: 5px;
+background: #007BFF;
+color: white;
+}
+button:disabled {
+background-color: #ccc;
+cursor: not-allowed;
+}
+#players {
+display: flex;
+flex-wrap: wrap;
+gap: 10px;
+justify-content: center;
+}
+.player {
+width: 120px;
+padding: 10px;
+border-radius: 10px;
+box-shadow: 0 0 5px gray;
+background: white;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+.in {
+background-color: #d4fcd4;
+}
+.done {
+background-color: #ffdddd;
+}
+.jersey-input {
+width: 60px;
+font-size: 20px;
+text-align: center;
+margin-bottom: 8px;
+}
+.play-count {
+font-weight: bold;
+font-size: 16px;
+margin-bottom: 5px;
+}
+.hide-btn {
+font-size: 12px;
+margin-top: 5px;
+background: #dc3545;
+}
+</style>
+</head>
+<body>
+
+<h2>📋 Football Play Tracker</h2>
+<div class="controls">
+<button id="addPlayBtn" onclick="addPlayToAll()">➕ Add 1 Play</button>
+<button onclick="subInLineup('offense')">🔁 Sub In Offense</button>
+<button onclick="subInLineup('defense')">🔁 Sub In Defense</button>
+</div>
+<div id="players"></div>
+
+<script>
+const requiredPlays = 4;
+const maxInGame = 11;
+const playerCount = 40;
+let players = [];
+
+let offenseLineup = new Set();
+let defenseLineup = new Set();
+
+for (let i = 0; i < playerCount; i++) {
+players.push({
+jersey: '',
+plays: 0,
+inGame: false,
+hidden: false
+});
+}
+
+function renderPlayers() {
+const container = document.getElementById('players');
+container.innerHTML = '';
+
+players.forEach((p, i) => {
+if (p.hidden) return;
+
+const div = document.createElement('div');
+div.className = 'player';
+if (p.inGame) div.classList.add('in');
+if (p.plays >= requiredPlays) div.classList.add('done');
+
+div.innerHTML = `
+<input type="number" placeholder="Jersey" class="jersey-input" value="${p.jersey}" onchange="updateJersey(${i}, this.value)" />
+<div class="play-count">Plays: ${p.plays}</div>
+<button onclick="toggleInGame(${i})">${p.inGame ? 'Sub Out' : 'Sub In'}</button>
+<button onclick="toggleStarter(${i})">⭐ ${offenseLineup.has(i) ? 'O' : defenseLineup.has(i) ? 'D' : ''}</button>
+<button class="hide-btn" onclick="confirmHide(${i})">🗑️ Hide</button>
+`;
+container.appendChild(div);
+});
+
+// Enable or disable "Add Play" button based on in-game count
+const btn = document.getElementById("addPlayBtn");
+btn.disabled = countInGame() !== 11;
+}
+
+function updateJersey(index, value) {
+players[index].jersey = value;
+}
+
+function toggleInGame(index) {
+if (!players[index].inGame && countInGame() >= maxInGame) {
+alert("⚠️ Only 11 players can be on the field at once!");
+return;
+}
+players[index].inGame = !players[index].inGame;
+renderPlayers();
+}
+
+function countInGame() {
+return players.filter(p => p.inGame && !p.hidden).length;
+}
+
+function addPlayToAll() {
+if (countInGame() !== 11) {
+alert("⚠️ You must have exactly 11 players on the field to add plays.");
+return;
+}
+players.forEach(p => {
+if (p.inGame && !p.hidden) {
+p.plays++;
+}
+});
+renderPlayers();
+}
+
+function confirmHide(index) {
+const confirmHide = confirm("Are you sure you want to hide this player?");
+if (confirmHide) {
+players[index].hidden = true;
+offenseLineup.delete(index);
+defenseLineup.delete(index);
+renderPlayers();
+}
+}
+
+function toggleStarter(index) {
+if (offenseLineup.has(index)) {
+offenseLineup.delete(index);
+defenseLineup.add(index);
+} else if (defenseLineup.has(index)) {
+defenseLineup.delete(index);
+} else {
+offenseLineup.add(index);
+}
+renderPlayers();
+}
+
+function subInLineup(type) {
+players.forEach(p => p.inGame = false);
+let lineup = type === 'offense' ? offenseLineup : defenseLineup;
+lineup.forEach(i => {
+if (!players[i].hidden) {
+players[i].inGame = true;
+}
+});
+renderPlayers();
+}
+
+renderPlayers();
+</script>
+
+</body>
+</html>
